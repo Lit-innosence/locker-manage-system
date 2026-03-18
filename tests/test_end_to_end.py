@@ -8,7 +8,7 @@ from locker_manage_system.lottery_command import run_lottery
 from locker_manage_system.validate_command import run_validate
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[1]
 DEMO_INPUT_DIR = REPO_ROOT / "demo-input"
 FIXTURE_STATE_DIR = Path(__file__).resolve().parent / "fixtures" / "demo_state"
 
