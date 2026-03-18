@@ -4,6 +4,8 @@ import csv
 import shutil
 from pathlib import Path
 
+import pytest
+
 from locker_manage_system.lottery_command import run_lottery
 from locker_manage_system.validate_command import run_validate
 
@@ -69,6 +71,10 @@ def _mark_review_row_keep(review_csv: Path, applicant_id: str) -> None:
         writer.writerows(rows)
 
 
+@pytest.mark.skipif(
+    not DEMO_INPUT_DIR.exists(),
+    reason="demo-input fixture is not available in this checkout",
+)
 def test_validate_then_lottery_with_demo_input(tmp_path):
     input_dir = tmp_path / "input"
     state_dir = tmp_path / "state"

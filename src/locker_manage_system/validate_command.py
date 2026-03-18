@@ -91,6 +91,24 @@ def _parse_timestamp(value: str) -> datetime:
     return datetime.fromisoformat(value.replace(" ", "T"))
 
 
+def _parse_term_period(term: str) -> tuple[datetime, datetime] | None:
+    if ".." not in term:
+        return None
+
+    start_date, end_date = term.split("..", maxsplit=1)
+    start = datetime.fromisoformat(f"{start_date}T00:00:00")
+    end = datetime.fromisoformat(f"{end_date}T23:59:59")
+    return start, end
+
+
+def _is_in_term(timestamp: str, term_period: tuple[datetime, datetime] | None) -> bool:
+    if term_period is None:
+        return True
+    start, end = term_period
+    value = _parse_timestamp(timestamp)
+    return start <= value <= end
+
+
 def _write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as csv_file:
@@ -136,6 +154,7 @@ def run_validate(
     input_path = Path(input_dir)
     state_path = Path(state_dir)
     output_path = Path(output_dir) / term
+    term_period = _parse_term_period(term)
 
     applicant_fieldnames, applicant_inputs = load_applicant_inputs(input_path / "applicant_data.csv")
     partner_fieldnames, partner_inputs = load_partner_inputs(input_path / "partner_data.csv")
@@ -145,7 +164,7 @@ def run_validate(
     partner_rows_by_id: dict[str, list[_IndexedPartnerRow]] = {}
     for partner_row in indexed_partner_rows:
         partner_id = partner_row.raw_row.get("共同利用者の学籍番号", "").strip()
-        if partner_id:
+        if partner_id and _is_in_term(partner_row.raw_row.get("タイムスタンプ", ""), term_period):
             partner_rows_by_id.setdefault(partner_id, []).append(partner_row)
 
     latest_partner_row_by_id = {
@@ -192,7 +211,10 @@ def run_validate(
     pair_application_ids_by_partner_id: dict[str, list[str]] = {}
 
     for candidate in candidates:
-        result_code = classify_application(candidate.normalized, winner_ids)
+        if not _is_in_term(candidate.normalized.applicant_timestamp, term_period):
+            result_code = "E1"
+        else:
+            result_code = classify_application(candidate.normalized, winner_ids)
         if result_code == "S0" and candidate.application_id in duplicate_resolution.rejected_codes:
             result_code = duplicate_resolution.rejected_codes[candidate.application_id]
 
@@ -242,14 +264,18 @@ def run_validate(
         {
             **partner_row.raw_row,
             "結果": (
-                "E4"
-                if latest_partner_row_by_id.get(
-                    partner_row.raw_row.get("共同利用者の学籍番号", "").strip()
-                )
-                != partner_row
-                else active_partner_result_by_id.get(
-                    partner_row.raw_row.get("共同利用者の学籍番号", "").strip(),
-                    "E2",
+                "E1"
+                if not _is_in_term(partner_row.raw_row.get("タイムスタンプ", ""), term_period)
+                else (
+                    "E4"
+                    if latest_partner_row_by_id.get(
+                        partner_row.raw_row.get("共同利用者の学籍番号", "").strip()
+                    )
+                    != partner_row
+                    else active_partner_result_by_id.get(
+                        partner_row.raw_row.get("共同利用者の学籍番号", "").strip(),
+                        "E2",
+                    )
                 )
             ),
         }

@@ -263,3 +263,42 @@ def test_run_validate_marks_only_latest_partner_submission_as_active(tmp_path):
         rows = list(csv.DictReader(csv_file))
 
     assert [row["結果"] for row in rows] == ["E4", "S0"]
+
+
+def test_run_validate_marks_applicant_outside_term_as_e1(tmp_path):
+    input_dir = tmp_path / "input"
+    state_dir = tmp_path / "state"
+    output_dir = tmp_path / "output"
+    input_dir.mkdir()
+    state_dir.mkdir()
+
+    input_dir.joinpath("applicant_data.csv").write_text(
+        "タイムスタンプ,メールアドレス,規約への同意,申請者の学籍番号,申請者の氏名,申請者の学生証写真,共同利用者の有無,共同利用者の学籍番号,共同利用者の氏名,階数希望選択（共同利用者なし）,階数希望選択（共同利用者あり）\n"
+        "2026-04-08 00:00:00,test@example.com,利用規約に同意する,1520001,山田 太郎,accept,共同利用者なし (2階・3階のロッカーは使用できません),,,4階,\n",
+        encoding="utf-8",
+    )
+    _write_partner_csv(input_dir / "partner_data.csv")
+    config_path = tmp_path / "config.yml"
+    config_path.write_text(
+        "year: 2026\n"
+        "floors:\n"
+        "  4F:\n"
+        "    capacity: 240\n"
+        "    occupancy: single_only\n",
+        encoding="utf-8",
+    )
+
+    run_validate(
+        config_path=config_path,
+        term="2026-04-01..2026-04-07",
+        input_dir=input_dir,
+        state_dir=state_dir,
+        output_dir=output_dir,
+    )
+
+    with (
+        tmp_path / "output" / "2026-04-01..2026-04-07" / "validation" / "invalid_app.csv"
+    ).open("r", encoding="utf-8", newline="") as csv_file:
+        rows = list(csv.DictReader(csv_file))
+
+    assert [row["結果"] for row in rows] == ["E1"]

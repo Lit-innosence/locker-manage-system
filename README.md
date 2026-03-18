@@ -30,15 +30,15 @@
 ```bash
 PYTHONPATH=src python -m locker_manage_system.main validate \
   --config config/default.yml \
-  --term term1 \
+  --term 2026-04-01..2026-04-07 \
   --input-dir demo-input \
   --state-dir state \
   --output-dir output
 
 PYTHONPATH=src python -m locker_manage_system.main lottery \
   --config config/default.yml \
-  --term term1 \
-  --review-dir output/term1/review \
+  --term 2026-04-01..2026-04-07 \
+  --review-dir output/2026-04-01..2026-04-07/review \
   --state-dir state \
   --output-dir output
 ```
@@ -50,15 +50,15 @@ Linux / macOS:
 ```bash
 ./locker-manage-system validate \
   --config config/default.yml \
-  --term term1 \
+  --term 2026-04-01..2026-04-07 \
   --input-dir demo-input \
   --state-dir state \
   --output-dir output
 
 ./locker-manage-system lottery \
   --config config/default.yml \
-  --term term1 \
-  --review-dir output/term1/review \
+  --term 2026-04-01..2026-04-07 \
+  --review-dir output/2026-04-01..2026-04-07/review \
   --state-dir state \
   --output-dir output
 ```
@@ -68,15 +68,15 @@ Windows:
 ```powershell
 .\locker-manage-system.exe validate `
   --config config/default.yml `
-  --term term1 `
+  --term 2026-04-01..2026-04-07 `
   --input-dir demo-input `
   --state-dir state `
   --output-dir output
 
 .\locker-manage-system.exe lottery `
   --config config/default.yml `
-  --term term1 `
-  --review-dir output/term1/review `
+  --term 2026-04-01..2026-04-07 `
+  --review-dir output/2026-04-01..2026-04-07/review `
   --state-dir state `
   --output-dir output
 ```
@@ -88,7 +88,7 @@ Windows:
 - `--config`
   設定ファイルのパス。年度、各階のロッカー数、利用条件、ロッカー番号範囲をここから読む。
 - `--term`
-  今回の処理単位名。`term1` などの名前を付け、出力先の `output/<term>/...` に使う。
+  対象期間。形式は `YYYY-MM-DD..YYYY-MM-DD`。開始日の 00:00:00 から終了日の 23:59:59 までを有効期間として扱い、期間外の応募は `E1` とする。出力先の `output/<term>/...` にもこの文字列を使う。
 - `--state-dir`
   年度内で引き継ぐ状態ファイルを置くディレクトリ。`winners.csv` と `locker_assignments.csv` をここから読む。
 
