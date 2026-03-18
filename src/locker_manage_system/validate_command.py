@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 from .config import AppConfig, load_config
@@ -49,6 +50,12 @@ class _Candidate:
     raw_input_row: dict[str, str]
 
 
+@dataclass(frozen=True)
+class _IndexedPartnerRow:
+    index: int
+    raw_row: dict[str, str]
+
+
 def _normalize_application(
     row: ApplicantRow,
     partner_rows: dict[str, dict[str, str]],
@@ -78,6 +85,10 @@ def _load_state_winner_ids(state_dir: Path, year: int) -> set[str]:
         if candidate.exists():
             return load_winner_ids(candidate)
     return set()
+
+
+def _parse_timestamp(value: str) -> datetime:
+    return datetime.fromisoformat(value.replace(" ", "T"))
 
 
 def _write_csv(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) -> None:
@@ -128,10 +139,24 @@ def run_validate(
 
     applicant_fieldnames, applicant_inputs = load_applicant_inputs(input_path / "applicant_data.csv")
     partner_fieldnames, partner_inputs = load_partner_inputs(input_path / "partner_data.csv")
+    indexed_partner_rows = [
+        _IndexedPartnerRow(index=index, raw_row=row) for index, row in enumerate(partner_inputs, start=1)
+    ]
+    partner_rows_by_id: dict[str, list[_IndexedPartnerRow]] = {}
+    for partner_row in indexed_partner_rows:
+        partner_id = partner_row.raw_row.get("共同利用者の学籍番号", "").strip()
+        if partner_id:
+            partner_rows_by_id.setdefault(partner_id, []).append(partner_row)
+
+    latest_partner_row_by_id = {
+        partner_id: max(
+            rows,
+            key=lambda row: (_parse_timestamp(row.raw_row.get("タイムスタンプ", "")), row.index),
+        )
+        for partner_id, rows in partner_rows_by_id.items()
+    }
     partner_lookup = {
-        row.get("共同利用者の学籍番号", "").strip(): row
-        for row in partner_inputs
-        if row.get("共同利用者の学籍番号", "").strip()
+        partner_id: indexed_row.raw_row for partner_id, indexed_row in latest_partner_row_by_id.items()
     }
     winner_ids = _load_state_winner_ids(state_path, config.year)
 
@@ -163,7 +188,8 @@ def run_validate(
     validation_rows_by_floor: dict[str, list[dict[str, str]]] = {floor: [] for floor in config.floors}
     review_rows_by_floor: dict[str, list[dict[str, str]]] = {floor: [] for floor in config.floors}
     applicant_output_rows: list[dict[str, str]] = []
-    partner_result_by_id: dict[str, str] = {}
+    result_code_by_application_id: dict[str, str] = {}
+    pair_application_ids_by_partner_id: dict[str, list[str]] = {}
 
     for candidate in candidates:
         result_code = classify_application(candidate.normalized, winner_ids)
@@ -171,7 +197,10 @@ def run_validate(
             result_code = duplicate_resolution.rejected_codes[candidate.application_id]
 
         if candidate.normalized.usage_type == "pair" and candidate.normalized.partner_id:
-            partner_result_by_id.setdefault(candidate.normalized.partner_id, result_code)
+            pair_application_ids_by_partner_id.setdefault(candidate.normalized.partner_id, []).append(
+                candidate.application_id
+            )
+        result_code_by_application_id[candidate.application_id] = result_code
 
         applicant_output_rows.append({**candidate.raw_input_row, "結果": result_code})
 
@@ -195,12 +224,39 @@ def run_validate(
         )
 
     invalid_app_rows = sorted(applicant_output_rows, key=lambda row: row.get("タイムスタンプ", ""))
+    active_partner_result_by_id: dict[str, str] = {}
+    for partner_id, application_ids in pair_application_ids_by_partner_id.items():
+        related_results = [result_code_by_application_id[application_id] for application_id in application_ids]
+        if "S0" in related_results:
+            active_partner_result_by_id[partner_id] = "S0"
+        elif "E4" in related_results:
+            active_partner_result_by_id[partner_id] = "E4"
+        elif "E3" in related_results:
+            active_partner_result_by_id[partner_id] = "E3"
+        elif "E2" in related_results:
+            active_partner_result_by_id[partner_id] = "E2"
+        else:
+            active_partner_result_by_id[partner_id] = "E1"
+
     invalid_par_rows = [
         {
-            **row,
-            "結果": partner_result_by_id.get(row.get("共同利用者の学籍番号", "").strip(), "E2"),
+            **partner_row.raw_row,
+            "結果": (
+                "E4"
+                if latest_partner_row_by_id.get(
+                    partner_row.raw_row.get("共同利用者の学籍番号", "").strip()
+                )
+                != partner_row
+                else active_partner_result_by_id.get(
+                    partner_row.raw_row.get("共同利用者の学籍番号", "").strip(),
+                    "E2",
+                )
+            ),
         }
-        for row in sorted(partner_inputs, key=lambda row: row.get("タイムスタンプ", ""))
+        for partner_row in sorted(
+            indexed_partner_rows,
+            key=lambda row: (_parse_timestamp(row.raw_row.get("タイムスタンプ", "")), row.index),
+        )
     ]
 
     _write_csv(
