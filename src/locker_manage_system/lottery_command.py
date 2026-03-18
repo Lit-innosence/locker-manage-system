@@ -9,6 +9,7 @@ from pathlib import Path
 
 from .config import AppConfig, load_config
 from .lottery import FloorLotteryWinner, run_floor_lottery
+from .pdf_export import export_lottery_pdf
 from .review_io import ReviewApplication, load_review_applications
 
 
@@ -31,6 +32,7 @@ class LotteryRunResult:
     result_path: Path
     locker_state_path: Path
     log_path: Path
+    pdf_path: Path
 
 
 @dataclass(frozen=True)
@@ -152,6 +154,7 @@ def run_lottery(
     result_rows: list[dict[str, str]] = []
     log_rows: list[dict[str, str]] = []
     winners_by_locker: dict[str, ReviewApplication] = {}
+    floor_winner_ids: dict[str, list[str]] = {floor: [] for floor in config.floors}
 
     applications_by_floor: dict[str, list[ReviewApplication]] = {floor: [] for floor in config.floors}
     for application in review_applications:
@@ -171,6 +174,7 @@ def run_lottery(
         for winner in floor_winners:
             application = winners_by_application_id[winner.application_id]
             winners_by_locker[winner.locker_number] = application
+            floor_winner_ids[floor].append(application.applicant_id)
             result_rows.append(_result_row(application, processing_date, winner.locker_number))
             log_rows.append(_log_row(application, winner.locker_number))
 
@@ -181,14 +185,17 @@ def run_lottery(
     result_path = output_path / "result.csv"
     locker_state_path = output_path / "locker_assignments.csv"
     log_path = output_path / "lottery_log.csv"
+    pdf_path = output_path / "lottery_result.pdf"
 
     _write_csv(result_path, RESULT_COLUMNS, result_rows)
     _write_csv(locker_state_path, LOCKER_STATE_COLUMNS, _locker_rows(updated_locker_state))
     _write_csv(log_path, LOG_COLUMNS, log_rows)
+    export_lottery_pdf(pdf_path, processed_date=processing_date, floor_winners=floor_winner_ids)
 
     return LotteryRunResult(
         winner_count=len(result_rows),
         result_path=result_path,
         locker_state_path=locker_state_path,
         log_path=log_path,
+        pdf_path=pdf_path,
     )

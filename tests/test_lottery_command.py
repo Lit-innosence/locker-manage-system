@@ -62,3 +62,4 @@ def test_run_lottery_uses_only_manual_keep_rows(tmp_path):
     assert [row["申請者学籍番号"] for row in rows] == ["1520001"]
     assert (tmp_path / "output" / "term1" / "lottery" / "locker_assignments.csv").exists()
     assert (tmp_path / "output" / "term1" / "lottery" / "lottery_log.csv").exists()
+    assert (tmp_path / "output" / "term1" / "lottery" / "lottery_result.pdf").exists()
