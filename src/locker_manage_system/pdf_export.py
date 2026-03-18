@@ -14,7 +14,11 @@ from reportlab.pdfbase.pdfmetrics import registerFont
 JAPANESE_FONT_NAME = "HeiseiKakuGo-W5"
 TITLE_FONT_SIZE = 16
 BODY_FONT_SIZE = 12
+MAX_COLUMNS = 4
 LINES_PER_PAGE = 30
+ROWS_PER_COLUMN = 8
+LEFT_MARGIN = 72
+TOP_LINE_HEIGHT = 18
 
 
 def _register_japanese_font() -> str:
@@ -38,6 +42,25 @@ def _draw_page_header(canvas: Canvas, *, title: str, floor: str | None = None) -
     return y
 
 
+def _column_x_positions() -> list[float]:
+    width, _ = A4
+    usable_width = width - (LEFT_MARGIN * 2)
+    column_width = usable_width / MAX_COLUMNS
+    return [LEFT_MARGIN + (column_width * index) for index in range(MAX_COLUMNS)]
+
+
+def _draw_winner_page(canvas: Canvas, *, title: str, floor: str, winners: Sequence[str]) -> None:
+    y_start = _draw_page_header(canvas, title=title, floor=floor)
+    x_positions = _column_x_positions()
+
+    for index, winner in enumerate(winners):
+        column_index = index // ROWS_PER_COLUMN
+        row_index = index % ROWS_PER_COLUMN
+        x = x_positions[column_index]
+        y = y_start - (row_index * TOP_LINE_HEIGHT)
+        canvas.drawString(x, y, winner)
+
+
 def export_lottery_pdf(
     output_path: str | Path,
     *,
@@ -54,21 +77,16 @@ def export_lottery_pdf(
     items = list(floor_winners.items())
     for index, (floor, winners) in enumerate(items):
         sorted_winners = sorted(str(winner) for winner in winners)
-        y = _draw_page_header(canvas, title=title, floor=floor)
 
         if sorted_winners:
-            lines_on_page = 0
-            for winner in sorted_winners:
-                if lines_on_page == LINES_PER_PAGE:
+            for page_start in range(0, len(sorted_winners), LINES_PER_PAGE):
+                if page_start > 0:
                     canvas.showPage()
-                    y = _draw_page_header(canvas, title=title, floor=floor)
-                    lines_on_page = 0
-                canvas.drawString(72, y, str(winner))
-                y -= 18
-                lines_on_page += 1
+                page_winners = sorted_winners[page_start : page_start + LINES_PER_PAGE]
+                _draw_winner_page(canvas, title=title, floor=floor, winners=page_winners)
         else:
+            y = _draw_page_header(canvas, title=title, floor=floor)
             canvas.drawString(72, y, "該当なし")
-            y -= 18
 
         if index < len(items) - 1:
             canvas.showPage()

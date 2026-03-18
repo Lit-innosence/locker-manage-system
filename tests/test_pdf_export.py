@@ -55,6 +55,27 @@ def test_export_lottery_pdf_uses_japanese_font_and_sorts_ids(monkeypatch, tmp_pa
     assert drawn_ids == ["1500895", "4100001", "4654293"]
 
 
+def test_export_lottery_pdf_fills_columns_top_to_bottom_then_left_to_right(monkeypatch, tmp_path):
+    FakeCanvas.instances.clear()
+    monkeypatch.setattr(pdf_export, "Canvas", FakeCanvas)
+
+    winners = [f"410000{i}" for i in range(10)]
+    pdf_export.export_lottery_pdf(
+        tmp_path / "lottery_result.pdf",
+        processed_date="2026-04-03",
+        floor_winners={"4F": winners},
+    )
+
+    canvas = FakeCanvas.instances[0]
+    drawn_ids = [(x, y, text) for x, y, text in canvas.draw_calls if text.isdigit()]
+
+    assert [text for _, _, text in drawn_ids] == winners
+    assert len({x for x, _, _ in drawn_ids[:8]}) == 1
+    assert [y for _, y, _ in drawn_ids[:8]] == sorted((y for _, y, _ in drawn_ids[:8]), reverse=True)
+    assert drawn_ids[8][0] > drawn_ids[7][0]
+    assert drawn_ids[8][1] == drawn_ids[0][1]
+
+
 def test_export_lottery_pdf_paginates_every_30_winners(monkeypatch, tmp_path):
     FakeCanvas.instances.clear()
     monkeypatch.setattr(pdf_export, "Canvas", FakeCanvas)
