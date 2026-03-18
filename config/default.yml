@@ -1,0 +1,31 @@
+year: 2026
+paths:
+  input_dir: input
+  state_dir: state
+  output_dir: output
+floors:
+  2F:
+    capacity: 420
+    occupancy: pair_only
+    locker_start: 2001
+    locker_end: 2420
+  3F:
+    capacity: 240
+    occupancy: pair_only
+    locker_start: 3001
+    locker_end: 3240
+  4F:
+    capacity: 240
+    occupancy: single_only
+    locker_start: 4001
+    locker_end: 4240
+  5F:
+    capacity: 240
+    occupancy: single_only
+    locker_start: 5001
+    locker_end: 5240
+  6F:
+    capacity: 240
+    occupancy: single_only
+    locker_start: 6001
+    locker_end: 6240

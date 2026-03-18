@@ -7,6 +7,7 @@ name = "locker-manage-system"
 version = "0.1.0"
 description = "Locker lottery management CLI"
 requires-python = ">=3.10"
+dependencies = ["PyYAML>=6.0,<7.0"]
 
 [project.scripts]
 locker-manage-system = "locker_manage_system.main:main"
