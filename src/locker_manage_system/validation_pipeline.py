@@ -109,13 +109,20 @@ def resolve_duplicate_applications(
     rejected_codes: dict[str, str] = {}
 
     latest_single_by_person: dict[str, DuplicateApplication] = {}
-    earliest_pair_by_person: dict[str, DuplicateApplication] = {}
+    latest_pair_by_identity: dict[frozenset[str], DuplicateApplication] = {}
 
     for application in sorted(applications, key=_submission_key):
         if application.usage_type == "single":
             latest_single_by_person[application.applicant_id] = application
             continue
 
+        pair_identity = frozenset(
+            person_id for person_id in (application.applicant_id, application.partner_id) if person_id
+        )
+        latest_pair_by_identity[pair_identity] = application
+
+    earliest_pair_by_person: dict[str, DuplicateApplication] = {}
+    for application in sorted(latest_pair_by_identity.values(), key=_submission_key):
         involved_people = [application.applicant_id]
         if application.partner_id:
             involved_people.append(application.partner_id)

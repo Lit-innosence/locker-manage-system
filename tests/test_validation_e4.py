@@ -74,3 +74,29 @@ def test_resolve_duplicate_applications_prefers_latest_submission_across_types()
 
     assert resolved.accepted_application_ids == {"pair-b"}
     assert resolved.rejected_codes["single-a"] == "E4"
+
+
+def test_resolve_duplicate_applications_prefers_latest_identical_pair_resubmission():
+    applications = [
+        DuplicateApplication(
+            application_id="pair-a",
+            applicant_id="1000001",
+            applicant_timestamp="2026-04-01T09:00:00",
+            usage_type="pair",
+            partner_id="2000001",
+            partner_timestamp="2026-04-01T09:05:00",
+        ),
+        DuplicateApplication(
+            application_id="pair-b",
+            applicant_id="1000001",
+            applicant_timestamp="2026-04-01T10:00:00",
+            usage_type="pair",
+            partner_id="2000001",
+            partner_timestamp="2026-04-01T10:05:00",
+        ),
+    ]
+
+    resolved = resolve_duplicate_applications(applications)
+
+    assert resolved.accepted_application_ids == {"pair-b"}
+    assert resolved.rejected_codes["pair-a"] == "E4"
