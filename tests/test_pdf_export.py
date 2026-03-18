@@ -50,8 +50,9 @@ def test_export_lottery_pdf_uses_japanese_font_and_sorts_ids(monkeypatch, tmp_pa
 
     assert ("HeiseiKakuGo-W5", 16) in canvas.font_calls
     assert ("HeiseiKakuGo-W5", 9) in canvas.font_calls
+    assert canvas.draw_calls[0][2] == "ロッカー抽選結果 - 学籍番号（ロッカー番号）"
 
-    drawn_items = [text for _, _, text in canvas.draw_calls if "（" in text]
+    drawn_items = [text for _, _, text in canvas.draw_calls if text[:1].isdigit() and "（" in text]
     assert drawn_items == ["1500895（4001）", "4100001（4002）", "4654293（4003）"]
 
 
@@ -67,7 +68,7 @@ def test_export_lottery_pdf_fills_columns_top_to_bottom_then_left_to_right(monke
     )
 
     canvas = FakeCanvas.instances[0]
-    drawn_ids = [(x, y, text) for x, y, text in canvas.draw_calls if "（" in text]
+    drawn_ids = [(x, y, text) for x, y, text in canvas.draw_calls if text[:1].isdigit() and "（" in text]
 
     assert [text for _, _, text in drawn_ids] == [f"{student_id}（{locker_number}）" for student_id, locker_number in winners]
     assert len({x for x, _, _ in drawn_ids[:10]}) == 1
@@ -87,7 +88,7 @@ def test_export_lottery_pdf_moves_to_next_column_after_50_rows(monkeypatch, tmp_
     )
 
     canvas = FakeCanvas.instances[0]
-    drawn_ids = [(x, y, text) for x, y, text in canvas.draw_calls if "（" in text]
+    drawn_ids = [(x, y, text) for x, y, text in canvas.draw_calls if text[:1].isdigit() and "（" in text]
 
     assert drawn_ids[50][0] > drawn_ids[49][0]
     assert drawn_ids[50][1] == drawn_ids[0][1]

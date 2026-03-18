@@ -72,7 +72,7 @@ def export_lottery_pdf(
     _register_japanese_font()
 
     canvas = Canvas(str(output), pagesize=A4)
-    title = f"ロッカー抽選結果 ({processed_date})"
+    title = "ロッカー抽選結果 - 学籍番号（ロッカー番号）"
 
     items = list(floor_winners.items())
     for index, (floor, winners) in enumerate(items):
