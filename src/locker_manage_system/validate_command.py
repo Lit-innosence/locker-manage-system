@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .config import AppConfig, load_config
+from .csv_io import load_applicant_inputs, load_partner_inputs
 from .models import ApplicantRow, NormalizedApplication
 from .state import load_winner_ids
 from .validation_pipeline import (
@@ -33,6 +34,7 @@ REVIEW_COLUMNS = [
     "manual_status",
 ]
 
+
 @dataclass(frozen=True)
 class ValidationResult:
     term: str
@@ -45,50 +47,6 @@ class _Candidate:
     application_id: str
     normalized: NormalizedApplication
     raw_input_row: dict[str, str]
-
-
-@dataclass(frozen=True)
-class _ApplicantInput:
-    raw_row: dict[str, str]
-    model: ApplicantRow
-
-
-def _load_applicant_inputs(path: Path) -> tuple[list[str], list[_ApplicantInput]]:
-    with path.open("r", encoding="utf-8-sig", newline="") as csv_file:
-        reader = csv.DictReader(csv_file)
-        fieldnames = list(reader.fieldnames or [])
-        inputs: list[_ApplicantInput] = []
-        for row in reader:
-            floor = row["階数希望選択（共同利用者なし）"] or row["階数希望選択（共同利用者あり）"]
-            inputs.append(
-                _ApplicantInput(
-                    raw_row=row,
-                    model=ApplicantRow(
-                        timestamp=row["タイムスタンプ"],
-                        applicant_id=row["申請者の学籍番号"],
-                        applicant_name=row["申請者の氏名"],
-                        applicant_card_ref=row["申請者の学生証写真"],
-                        usage_label=row["共同利用者の有無"],
-                        partner_id=row["共同利用者の学籍番号"],
-                        partner_name=row["共同利用者の氏名"],
-                        requested_floor=floor.replace("階", "F").strip(),
-                    ),
-                )
-            )
-
-    return fieldnames, inputs
-
-
-def _load_partner_inputs(path: Path) -> tuple[list[str], list[dict[str, str]]]:
-    if not path.exists():
-        return [], []
-
-    with path.open("r", encoding="utf-8-sig", newline="") as csv_file:
-        reader = csv.DictReader(csv_file)
-        fieldnames = list(reader.fieldnames or [])
-        partner_rows = [row for row in reader]
-
-    return fieldnames, partner_rows
 
 
 def _normalize_application(
@@ -168,8 +126,8 @@ def run_validate(
     state_path = Path(state_dir)
     output_path = Path(output_dir) / term
 
-    applicant_fieldnames, applicant_inputs = _load_applicant_inputs(input_path / "applicant_data.csv")
-    partner_fieldnames, partner_inputs = _load_partner_inputs(input_path / "partner_data.csv")
+    applicant_fieldnames, applicant_inputs = load_applicant_inputs(input_path / "applicant_data.csv")
+    partner_fieldnames, partner_inputs = load_partner_inputs(input_path / "partner_data.csv")
     partner_lookup = {
         row.get("共同利用者の学籍番号", "").strip(): row
         for row in partner_inputs
