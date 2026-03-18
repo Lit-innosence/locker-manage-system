@@ -24,10 +24,36 @@ uv lock
 
 ## 運用フロー
 
-1. `config/default.yml` を基準に設定を確認する。
-1. `validate` を実行して `output/<term>/validation/` と `output/<term>/review/` を生成する。
+1. `config/default.yml` を確認する。
+1. `validate --term ...` を実行して `output/<term>/validation/` と `output/<term>/review/` を生成する。
 1. `output/<term>/review/review_*.csv` を管理者が確認し、`manual_status` を `keep` または `reject` に更新する。
-1. `lottery` を実行して `output/<term>/lottery/` に当選結果を出力する。
+1. `lottery --term ...` を実行して `output/<term>/lottery/` に当選結果を出力する。
+
+## 理想的なファイル構成
+
+次の構成なら、`--term` 以外の引数なしで動く。
+
+```text
+.
+├── config/
+│   └── default.yml
+├── input/
+│   ├── applicant_data.csv
+│   └── partner_data.csv
+├── output/
+│   ├── state/
+│   │   └── 2026/
+│   │       ├── winners.csv
+│   │       └── locker_assignments.csv
+│   └── 2026-04-01..2026-04-07/
+│       ├── validation/
+│       ├── review/
+│       └── lottery/
+└── dist/
+    └── locker-manage-system
+```
+
+`output/state/<year>/` の `<year>` は `--term` の開始日から自動決定する。例えば `2026-04-01..2026-04-07` なら `output/state/2026/` を使う。
 
 ## 入力と出力
 
@@ -42,19 +68,8 @@ uv lock
 リポジトリ直下で次を実行する。
 
 ```bash
-uv run locker-manage-system validate \
-  --config config/default.yml \
-  --term 2026-04-01..2026-04-07 \
-  --input-dir input \
-  --state-dir state/2026 \
-  --output-dir output
-
-uv run locker-manage-system lottery \
-  --config config/default.yml \
-  --term 2026-04-01..2026-04-07 \
-  --review-dir output/2026-04-01..2026-04-07/review \
-  --state-dir state/2026 \
-  --output-dir output
+uv run locker-manage-system validate --term 2026-04-01..2026-04-07
+uv run locker-manage-system lottery --term 2026-04-01..2026-04-07
 ```
 
 ### 実行ファイルから実行する場合
@@ -62,65 +77,35 @@ uv run locker-manage-system lottery \
 Linux / macOS:
 
 ```bash
-./dist/locker-manage-system validate \
-  --config config/default.yml \
-  --term 2026-04-01..2026-04-07 \
-  --input-dir input \
-  --state-dir state/2026 \
-  --output-dir output
-
-./dist/locker-manage-system lottery \
-  --config config/default.yml \
-  --term 2026-04-01..2026-04-07 \
-  --review-dir output/2026-04-01..2026-04-07/review \
-  --state-dir state/2026 \
-  --output-dir output
+./dist/locker-manage-system validate --term 2026-04-01..2026-04-07
+./dist/locker-manage-system lottery --term 2026-04-01..2026-04-07
 ```
 
 Windows:
 
 ```powershell
-.\dist\locker-manage-system.exe validate `
-  --config config/default.yml `
-  --term 2026-04-01..2026-04-07 `
-  --input-dir input `
-  --state-dir state/2026 `
-  --output-dir output
-
-.\dist\locker-manage-system.exe lottery `
-  --config config/default.yml `
-  --term 2026-04-01..2026-04-07 `
-  --review-dir output/2026-04-01..2026-04-07/review `
-  --state-dir state/2026 `
-  --output-dir output
+.\dist\locker-manage-system.exe validate --term 2026-04-01..2026-04-07
+.\dist\locker-manage-system.exe lottery --term 2026-04-01..2026-04-07
 ```
 
 ## 引数の説明
 
-### 共通引数
+通常運用では `--term` だけ指定すればよい。
 
-- `--config`
-  設定ファイルのパス。年度、各階のロッカー数、利用条件、ロッカー番号範囲をここから読む。
 - `--term`
   対象期間。形式は `YYYY-MM-DD..YYYY-MM-DD`。開始日の 00:00:00 から終了日の 23:59:59 までを有効期間として扱い、期間外の応募は `E1` とする。出力先の `output/<term>/...` にもこの文字列を使う。
-- `--state-dir`
-  年度内で引き継ぐ状態ファイルを置くディレクトリ。通常は `state/2026` のような年度ディレクトリを指定し、`winners.csv` と `locker_assignments.csv` をここから読む。
-
-### `validate` の引数
-
+- `--config`
+  省略時は `config/default.yml`。
 - `--input-dir`
-  入力 CSV の置き場所。この中に `applicant_data.csv` と `partner_data.csv` が必要。
+  `validate` 専用。省略時は `input/`。
+- `--state-dir`
+  省略時は `output/state/<termの開始年>/`。
 - `--output-dir`
-  自動判定結果の出力先の親ディレクトリ。`output/<term>/validation/` と `output/<term>/review/` が作られる。
-
-### `lottery` の引数
-
+  省略時は `output/`。
 - `--review-dir`
-  管理者が `manual_status` を編集した `review_*.csv` の置き場所。通常は `output/<term>/review/` を指定する。
-- `--output-dir`
-  抽選結果の出力先の親ディレクトリ。`output/<term>/lottery/` が作られる。
+  `lottery` 専用。省略時は `output/<term>/review/`。
 - `--seed`
-  抽選の乱数シード。省略可能。同じ入力と同じシードを使うと再現しやすい。
+  `lottery` 専用。抽選の乱数シード。省略可能。
 
 ## ビルド方法
 
