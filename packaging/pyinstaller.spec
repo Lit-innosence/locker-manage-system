@@ -3,11 +3,11 @@
 from pathlib import Path
 
 
-project_root = Path(__file__).resolve().parent.parent
+project_root = Path(SPECPATH).resolve().parent
 src_dir = project_root / "src"
 
 a = Analysis(
-    [str(src_dir / "locker_manage_system" / "main.py")],
+    [str(src_dir / "locker_manage_system" / "__main__.py")],
     pathex=[str(src_dir)],
     binaries=[],
     datas=[(str(project_root / "config" / "default.yml"), "config")],
