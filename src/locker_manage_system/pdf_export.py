@@ -14,9 +14,9 @@ from reportlab.pdfbase.pdfmetrics import registerFont
 JAPANESE_FONT_NAME = "HeiseiKakuGo-W5"
 TITLE_FONT_SIZE = 16
 BODY_FONT_SIZE = 9
-MAX_COLUMNS = 4
-LINES_PER_PAGE = 100
-ROWS_PER_COLUMN = 25
+MAX_COLUMNS = 3
+LINES_PER_PAGE = 150
+ROWS_PER_COLUMN = 50
 LEFT_MARGIN = 72
 TOP_LINE_HEIGHT = 10
 
@@ -65,7 +65,7 @@ def export_lottery_pdf(
     output_path: str | Path,
     *,
     processed_date: str,
-    floor_winners: Mapping[str, Sequence[str]],
+    floor_winners: Mapping[str, Sequence[tuple[str, str]]],
 ) -> Path:
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -76,7 +76,10 @@ def export_lottery_pdf(
 
     items = list(floor_winners.items())
     for index, (floor, winners) in enumerate(items):
-        sorted_winners = sorted(str(winner) for winner in winners)
+        sorted_winners = [
+            f"{student_id}（{locker_number}）"
+            for student_id, locker_number in sorted(winners, key=lambda item: item[0])
+        ]
 
         if sorted_winners:
             for page_start in range(0, len(sorted_winners), LINES_PER_PAGE):

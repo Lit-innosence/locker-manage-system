@@ -154,7 +154,7 @@ def run_lottery(
     result_rows: list[dict[str, str]] = []
     log_rows: list[dict[str, str]] = []
     winners_by_locker: dict[str, ReviewApplication] = {}
-    floor_winner_ids: dict[str, list[str]] = {floor: [] for floor in config.floors}
+    floor_winners_for_pdf: dict[str, list[tuple[str, str]]] = {floor: [] for floor in config.floors}
 
     applications_by_floor: dict[str, list[ReviewApplication]] = {floor: [] for floor in config.floors}
     for application in review_applications:
@@ -174,7 +174,7 @@ def run_lottery(
         for winner in floor_winners:
             application = winners_by_application_id[winner.application_id]
             winners_by_locker[winner.locker_number] = application
-            floor_winner_ids[floor].append(application.applicant_id)
+            floor_winners_for_pdf[floor].append((application.applicant_id, winner.locker_number))
             result_rows.append(_result_row(application, processing_date, winner.locker_number))
             log_rows.append(_log_row(application, winner.locker_number))
 
@@ -190,7 +190,7 @@ def run_lottery(
     _write_csv(result_path, RESULT_COLUMNS, result_rows)
     _write_csv(locker_state_path, LOCKER_STATE_COLUMNS, _locker_rows(updated_locker_state))
     _write_csv(log_path, LOG_COLUMNS, log_rows)
-    export_lottery_pdf(pdf_path, processed_date=processing_date, floor_winners=floor_winner_ids)
+    export_lottery_pdf(pdf_path, processed_date=processing_date, floor_winners=floor_winners_for_pdf)
 
     return LotteryRunResult(
         winner_count=len(result_rows),
