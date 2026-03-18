@@ -81,6 +81,33 @@ Windows:
   --output-dir output
 ```
 
+## 引数の説明
+
+### 共通引数
+
+- `--config`
+  設定ファイルのパス。年度、各階のロッカー数、利用条件、ロッカー番号範囲をここから読む。
+- `--term`
+  今回の処理単位名。`term1` などの名前を付け、出力先の `output/<term>/...` に使う。
+- `--state-dir`
+  年度内で引き継ぐ状態ファイルを置くディレクトリ。`winners.csv` と `locker_assignments.csv` をここから読む。
+
+### `validate` の引数
+
+- `--input-dir`
+  入力 CSV の置き場所。この中に `applicant_data.csv` と `partner_data.csv` が必要。
+- `--output-dir`
+  自動判定結果の出力先の親ディレクトリ。`output/<term>/validation/` と `output/<term>/review/` が作られる。
+
+### `lottery` の引数
+
+- `--review-dir`
+  管理者が `manual_status` を編集した `review_*.csv` の置き場所。通常は `output/<term>/review/` を指定する。
+- `--output-dir`
+  抽選結果の出力先の親ディレクトリ。`output/<term>/lottery/` が作られる。
+- `--seed`
+  抽選の乱数シード。省略可能。同じ入力と同じシードを使うと再現しやすい。
+
 ## ビルド方法
 
 まず依存関係を入れる。
