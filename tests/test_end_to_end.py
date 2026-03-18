@@ -4,14 +4,12 @@ import csv
 import shutil
 from pathlib import Path
 
-import pytest
-
 from locker_manage_system.lottery_command import run_lottery
 from locker_manage_system.validate_command import run_validate
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEMO_INPUT_DIR = REPO_ROOT / "demo-input"
+INPUT_DIR = REPO_ROOT / "input"
 FIXTURE_STATE_DIR = Path(__file__).resolve().parent / "fixtures" / "demo_state"
 
 
@@ -71,10 +69,6 @@ def _mark_review_row_keep(review_csv: Path, applicant_id: str) -> None:
         writer.writerows(rows)
 
 
-@pytest.mark.skipif(
-    not DEMO_INPUT_DIR.exists(),
-    reason="demo-input fixture is not available in this checkout",
-)
 def test_validate_then_lottery_with_demo_input(tmp_path):
     input_dir = tmp_path / "input"
     state_dir = tmp_path / "state"
@@ -82,8 +76,8 @@ def test_validate_then_lottery_with_demo_input(tmp_path):
     input_dir.mkdir()
     state_dir.mkdir()
 
-    shutil.copyfile(DEMO_INPUT_DIR / "applicant_data.csv", input_dir / "applicant_data.csv")
-    shutil.copyfile(DEMO_INPUT_DIR / "partner_data.csv", input_dir / "partner_data.csv")
+    shutil.copyfile(INPUT_DIR / "applicant_data.csv", input_dir / "applicant_data.csv")
+    shutil.copyfile(INPUT_DIR / "partner_data.csv", input_dir / "partner_data.csv")
     _copy_demo_state_fixture(state_dir)
 
     config_path = tmp_path / "config.yml"
@@ -91,7 +85,7 @@ def test_validate_then_lottery_with_demo_input(tmp_path):
 
     validate_result = run_validate(
         config_path=config_path,
-        term="term1",
+        term="2026-04-01..2026-04-07",
         input_dir=input_dir,
         state_dir=state_dir,
         output_dir=output_dir,
@@ -101,15 +95,15 @@ def test_validate_then_lottery_with_demo_input(tmp_path):
 
     lottery_result = run_lottery(
         config_path=config_path,
-        term="term1",
+        term="2026-04-01..2026-04-07",
         review_dir=validate_result.review_dir,
         state_dir=state_dir,
         output_dir=output_dir,
     )
 
-    result_csv = tmp_path / "output" / "term1" / "lottery" / "result.csv"
-    locker_state_csv = tmp_path / "output" / "term1" / "lottery" / "locker_assignments.csv"
-    log_csv = tmp_path / "output" / "term1" / "lottery" / "lottery_log.csv"
+    result_csv = tmp_path / "output" / "2026-04-01..2026-04-07" / "lottery" / "result.csv"
+    locker_state_csv = tmp_path / "output" / "2026-04-01..2026-04-07" / "lottery" / "locker_assignments.csv"
+    log_csv = tmp_path / "output" / "2026-04-01..2026-04-07" / "lottery" / "lottery_log.csv"
 
     assert lottery_result.winner_count == 1
     assert result_csv.exists()
