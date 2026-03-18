@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .models import NormalizedApplication
-from .validation_rules import validate_student_id
+from .validation_rules import validate_floor_usage, validate_student_id
 
 ALLOWED_FLOORS = {"2F", "3F", "4F", "5F", "6F"}
 ALLOWED_USAGE_TYPES = {"single", "pair"}
@@ -41,6 +41,9 @@ def classify_application(
         return "E1"
 
     if application.usage_type not in ALLOWED_USAGE_TYPES:
+        return "E1"
+
+    if not validate_floor_usage(application.requested_floor, application.usage_type):
         return "E1"
 
     if application.usage_type == "pair":
