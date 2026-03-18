@@ -40,10 +40,6 @@ def _parse_timestamp(value: str) -> datetime:
     return datetime.fromisoformat(value.replace(" ", "T"))
 
 
-def _single_sort_key(application: DuplicateApplication) -> tuple[datetime, str]:
-    return (_parse_timestamp(application.applicant_timestamp), application.application_id)
-
-
 def _pair_sort_key(application: DuplicateApplication) -> tuple[datetime, datetime, str]:
     primary_timestamp = application.partner_timestamp or application.applicant_timestamp
     return (
@@ -51,6 +47,13 @@ def _pair_sort_key(application: DuplicateApplication) -> tuple[datetime, datetim
         _parse_timestamp(application.applicant_timestamp),
         application.application_id,
     )
+
+
+def _submission_key(application: DuplicateApplication) -> tuple[datetime, datetime, str]:
+    if application.usage_type == "pair":
+        return _pair_sort_key(application)
+    applicant_time = _parse_timestamp(application.applicant_timestamp)
+    return (applicant_time, applicant_time, application.application_id)
 
 
 def classify_application(
@@ -105,34 +108,47 @@ def resolve_duplicate_applications(
     accepted_application_ids: set[str] = set()
     rejected_codes: dict[str, str] = {}
 
-    single_applications = [app for app in applications if app.usage_type == "single"]
-    pair_applications = [app for app in applications if app.usage_type == "pair"]
+    latest_single_by_person: dict[str, DuplicateApplication] = {}
+    earliest_pair_by_person: dict[str, DuplicateApplication] = {}
 
-    latest_single_by_applicant: dict[str, DuplicateApplication] = {}
-    for application in sorted(single_applications, key=_single_sort_key):
-        latest_single_by_applicant[application.applicant_id] = application
-
-    accepted_people: set[str] = set()
-    for application in latest_single_by_applicant.values():
-        accepted_application_ids.add(application.application_id)
-        accepted_people.add(application.applicant_id)
-
-    for application in sorted(pair_applications, key=_pair_sort_key):
-        if application.applicant_id in accepted_people:
-            rejected_codes[application.application_id] = "E4"
-            continue
-        if application.partner_id and application.partner_id in accepted_people:
-            rejected_codes[application.application_id] = "E4"
+    for application in sorted(applications, key=_submission_key):
+        if application.usage_type == "single":
+            latest_single_by_person[application.applicant_id] = application
             continue
 
-        accepted_application_ids.add(application.application_id)
-        accepted_people.add(application.applicant_id)
+        involved_people = [application.applicant_id]
         if application.partner_id:
-            accepted_people.add(application.partner_id)
+            involved_people.append(application.partner_id)
 
-    for application in single_applications:
-        if application.application_id not in accepted_application_ids:
-            rejected_codes[application.application_id] = "E4"
+        for person_id in involved_people:
+            earliest_pair_by_person.setdefault(person_id, application)
+
+    chosen_application_by_person: dict[str, DuplicateApplication] = {}
+    all_people = set(latest_single_by_person) | set(earliest_pair_by_person)
+    for person_id in all_people:
+        single_application = latest_single_by_person.get(person_id)
+        pair_application = earliest_pair_by_person.get(person_id)
+
+        if single_application and pair_application:
+            if _submission_key(single_application) >= _submission_key(pair_application):
+                chosen_application_by_person[person_id] = single_application
+            else:
+                chosen_application_by_person[person_id] = pair_application
+        elif single_application:
+            chosen_application_by_person[person_id] = single_application
+        elif pair_application:
+            chosen_application_by_person[person_id] = pair_application
+
+    for application in applications:
+        involved_people = [application.applicant_id]
+        if application.usage_type == "pair" and application.partner_id:
+            involved_people.append(application.partner_id)
+
+        if all(chosen_application_by_person.get(person_id) == application for person_id in involved_people):
+            accepted_application_ids.add(application.application_id)
+            continue
+
+        rejected_codes[application.application_id] = "E4"
 
     return DuplicateResolution(
         accepted_application_ids=accepted_application_ids,
