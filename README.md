@@ -4,9 +4,23 @@
 
 ## 実行環境
 
-- 開発時は Python 3.10 以上を想定する。
+- 開発時は `uv` と Python 3.10 以上を想定する。
 - 配布時は PyInstaller で単体実行ファイル化する。
 - 実行ファイルは `Linux`、`Windows`、`macOS` それぞれの OS 上で別々にビルドする。
+
+## セットアップ
+
+初回はリポジトリ直下で次を実行する。
+
+```bash
+uv sync --group dev
+```
+
+依存更新後に lock を更新する場合:
+
+```bash
+uv lock
+```
 
 ## 運用フロー
 
@@ -17,7 +31,7 @@
 
 ## 入力と出力
 
-- 入力は `demo-input/applicant_data.csv` と `demo-input/partner_data.csv` を想定する。
+- 入力は `input/applicant_data.csv` と `input/partner_data.csv` を想定する。
 - `validate` の出力は機械判定用の `validation/` と人手確認用の `review/` に分かれる。
 - `lottery` の出力は `result.csv`、`locker_assignments.csv`、`lottery_log.csv`、PDF である。
 
@@ -28,14 +42,14 @@
 リポジトリ直下で次を実行する。
 
 ```bash
-PYTHONPATH=src python -m locker_manage_system.main validate \
+uv run locker-manage-system validate \
   --config config/default.yml \
   --term 2026-04-01..2026-04-07 \
-  --input-dir demo-input \
+  --input-dir input \
   --state-dir state/2026 \
   --output-dir output
 
-PYTHONPATH=src python -m locker_manage_system.main lottery \
+uv run locker-manage-system lottery \
   --config config/default.yml \
   --term 2026-04-01..2026-04-07 \
   --review-dir output/2026-04-01..2026-04-07/review \
@@ -51,7 +65,7 @@ Linux / macOS:
 ./dist/locker-manage-system validate \
   --config config/default.yml \
   --term 2026-04-01..2026-04-07 \
-  --input-dir demo-input \
+  --input-dir input \
   --state-dir state/2026 \
   --output-dir output
 
@@ -69,7 +83,7 @@ Windows:
 .\dist\locker-manage-system.exe validate `
   --config config/default.yml `
   --term 2026-04-01..2026-04-07 `
-  --input-dir demo-input `
+  --input-dir input `
   --state-dir state/2026 `
   --output-dir output
 
@@ -110,17 +124,16 @@ Windows:
 
 ## ビルド方法
 
-まず依存関係を入れる。
+依存関係は `uv` で入れる。
 
 ```bash
-pip install -e .
-pip install pyinstaller
+uv sync --group dev
 ```
 
 その後、対象 OS 上で次を実行する。
 
 ```bash
-pyinstaller packaging/pyinstaller.spec
+uv run pyinstaller packaging/pyinstaller.spec
 ```
 
 生成物:
@@ -134,6 +147,12 @@ pyinstaller packaging/pyinstaller.spec
 - `Windows` 版は Windows 上でビルドする。
 - `macOS` 版は macOS 上でビルドする。
 - 別 OS 向けの実行ファイルをこの 1 台からまとめて作ることは前提にしない。
+
+## テスト
+
+```bash
+uv run pytest -v
+```
 
 ## 補足
 
