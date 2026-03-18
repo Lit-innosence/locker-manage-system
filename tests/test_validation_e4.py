@@ -30,6 +30,32 @@ def test_resolve_duplicate_applications_prefers_earliest_conflicting_pair():
     assert resolved.rejected_codes["pair-b"] == "E4"
 
 
+def test_resolve_duplicate_applications_uses_partner_timestamp_for_pair_ordering():
+    applications = [
+        DuplicateApplication(
+            application_id="pair-a",
+            applicant_id="1000001",
+            applicant_timestamp="2026-04-01T09:00:00",
+            usage_type="pair",
+            partner_id="2000001",
+            partner_timestamp="2026-04-01T09:30:00",
+        ),
+        DuplicateApplication(
+            application_id="pair-b",
+            applicant_id="1000001",
+            applicant_timestamp="2026-04-01T09:10:00",
+            usage_type="pair",
+            partner_id="2000002",
+            partner_timestamp="2026-04-01T09:20:00",
+        ),
+    ]
+
+    resolved = resolve_duplicate_applications(applications)
+
+    assert resolved.accepted_application_ids == {"pair-b"}
+    assert resolved.rejected_codes["pair-a"] == "E4"
+
+
 def test_resolve_duplicate_applications_prefers_latest_single_submission():
     applications = [
         DuplicateApplication(
