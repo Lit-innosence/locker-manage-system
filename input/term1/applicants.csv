@@ -1,0 +1,9 @@
+タイムスタンプ,メールアドレス,規約への同意,申請者の学籍番号,申請者の氏名,申請者の学生証写真,共同利用者の有無,共同利用者の学籍番号,共同利用者の氏名,階数希望選択（共同利用者なし）,階数希望選択（共同利用者あり）
+2026/04/01 10:00:00,a@test.com,同意する,1500001,山田 太郎,https://drive.google.com/file/d/dummy1/view,なし,,,4階,
+2026/04/01 10:05:00,b@test.com,同意する,4100002,佐藤 花子,https://drive.google.com/file/d/dummy2/view,あり,8200003,鈴木 一郎,,2階
+2026/04/01 10:10:00,c@test.com,同意する,9999999,学籍番号 エラー,https://drive.google.com/file/d/dummy3/view,なし,,,5階,
+2026/04/01 10:15:00,d@test.com,同意する,1500004,URL 欠落子,,なし,,,6階,
+2026/04/01 10:20:00,e@test.com,同意する,1500005,階数 エラー,https://drive.google.com/file/d/dummy5/view,なし,,,2階,
+2026/04/01 10:25:00,f@test.com,同意する,1500006,相方 不在,https://drive.google.com/file/d/dummy6/view,あり,1500007,幻の 相方,,3階
+2026/04/01 09:00:00,g@test.com,同意する,1500008,多重 応募,https://drive.google.com/file/d/dummy7/view,なし,,,5階,
+2026/04/01 11:00:00,g@test.com,同意する,1500008,多重 応募,https://drive.google.com/file/d/dummy8/view,なし,,,6階,
