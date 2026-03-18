@@ -13,12 +13,12 @@ from reportlab.pdfbase.pdfmetrics import registerFont
 
 JAPANESE_FONT_NAME = "HeiseiKakuGo-W5"
 TITLE_FONT_SIZE = 16
-BODY_FONT_SIZE = 12
+BODY_FONT_SIZE = 9
 MAX_COLUMNS = 4
-LINES_PER_PAGE = 30
-ROWS_PER_COLUMN = 8
+LINES_PER_PAGE = 100
+ROWS_PER_COLUMN = 25
 LEFT_MARGIN = 72
-TOP_LINE_HEIGHT = 18
+TOP_LINE_HEIGHT = 10
 
 
 def _register_japanese_font() -> str:
