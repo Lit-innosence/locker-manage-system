@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import date
 from pathlib import Path
 
 from .cli import build_parser
@@ -23,7 +24,45 @@ def _default_review_dir(term: str, output_dir: str) -> str:
     return str(Path(output_dir) / term / "review")
 
 
+def _prompt_command() -> str:
+    while True:
+        value = input("実行する処理を入力してください [validate/lottery]: ").strip()
+        if value in {"validate", "lottery"}:
+            return value
+        print("validate または lottery を入力してください。Ctrl+C で終了できます。")
+
+
+def _prompt_date(label: str, example: str) -> str:
+    while True:
+        value = input(f"{label}を入力してください（例: {example}）: ").strip()
+        try:
+            date.fromisoformat(value)
+            return value
+        except ValueError:
+            print("日付は YYYY-MM-DD 形式で入力してください。Ctrl+C で終了できます。")
+
+
+def _prompt_term() -> str:
+    while True:
+        start_date = _prompt_date("開始日", "2026-04-01")
+        end_date = _prompt_date("終了日", "2026-04-07")
+        if end_date >= start_date:
+            return f"{start_date}..{end_date}"
+        print("終了日は開始日以降の日付を入力してください。Ctrl+C で終了できます。")
+
+
+def _interactive_args() -> list[str]:
+    command = _prompt_command()
+    term = _prompt_term()
+    return [command, "--term", term]
+
+
 def main(argv: list[str] | None = None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+    if not argv:
+        argv = _interactive_args()
+
     parser = build_parser()
     args = parser.parse_args(argv)
 

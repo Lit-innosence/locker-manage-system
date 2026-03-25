@@ -25,9 +25,27 @@ uv lock
 ## 運用フロー
 
 1. `config/default.yml` を確認する。
-1. `validate --term ...` を実行して `output/<term>/validation/` と `output/<term>/review/` を生成する。
+1. 引数なしで起動し、`validate` か `lottery`、開始日、終了日を対話入力する。
+1. `validate` を実行して `output/<term>/validation/` と `output/<term>/review/` を生成する。
 1. `output/<term>/review/review_*.csv` を管理者が確認し、`manual_status` を `keep` または `reject` に更新する。
-1. `lottery --term ...` を実行して `output/<term>/lottery/` に当選結果を出力する。
+1. `lottery` を実行して `output/<term>/lottery/` に当選結果を出力する。
+
+## 対話入力
+
+引数なしで起動すると、次を順に聞く。
+
+1. `validate` か `lottery`
+1. 開始日
+1. 終了日
+
+開始日と終了日は `YYYY-MM-DD` 形式で入力する。例:
+
+```text
+開始日を入力してください（例: 2026-04-01）
+終了日を入力してください（例: 2026-04-07）
+```
+
+誤った文字列を入力した場合は再入力になる。終了日が開始日より前なら、開始日から聞き直す。強制終了したい場合は `Ctrl+C` を使う。
 
 ## 理想的なファイル構成
 
@@ -68,8 +86,7 @@ uv lock
 リポジトリ直下で次を実行する。
 
 ```bash
-uv run locker-manage-system validate --term 2026-04-01..2026-04-07
-uv run locker-manage-system lottery --term 2026-04-01..2026-04-07
+uv run locker-manage-system
 ```
 
 ### 実行ファイルから実行する場合
@@ -77,20 +94,20 @@ uv run locker-manage-system lottery --term 2026-04-01..2026-04-07
 Linux / macOS:
 
 ```bash
-./dist/locker-manage-system validate --term 2026-04-01..2026-04-07
-./dist/locker-manage-system lottery --term 2026-04-01..2026-04-07
+./dist/locker-manage-system
 ```
 
 Windows:
 
 ```powershell
-.\dist\locker-manage-system.exe validate --term 2026-04-01..2026-04-07
-.\dist\locker-manage-system.exe lottery --term 2026-04-01..2026-04-07
+.\dist\locker-manage-system.exe
 ```
+
+サブコマンドを使う既存方式も残している。`validate --term ...` や `lottery --term ...` を指定した場合は対話をスキップする。
 
 ## 引数の説明
 
-通常運用では `--term` だけ指定すればよい。
+通常運用では引数なしでよい。サブコマンド指定時だけ次の引数を使う。
 
 - `--term`
   対象期間。形式は `YYYY-MM-DD..YYYY-MM-DD`。開始日の 00:00:00 から終了日の 23:59:59 までを有効期間として扱い、期間外の応募は `E1` とする。出力先の `output/<term>/...` にもこの文字列を使う。

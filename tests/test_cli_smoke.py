@@ -129,3 +129,55 @@ def test_main_resolves_default_lottery_paths_from_term(monkeypatch):
         "output_dir": "output",
         "seed": None,
     }
+
+
+def test_main_interactively_dispatches_validate_when_no_args(monkeypatch):
+    called = {}
+    answers = iter(["validate", "2026-04-01", "2026-04-07"])
+
+    def fake_input(prompt):
+        return next(answers)
+
+    def fake_run_validate(**kwargs):
+        called.update(kwargs)
+        return None
+
+    monkeypatch.setattr("builtins.input", fake_input)
+    monkeypatch.setattr("locker_manage_system.main.run_validate", fake_run_validate)
+
+    exit_code = main([])
+
+    assert exit_code == 0
+    assert called == {
+        "config_path": "config/default.yml",
+        "term": "2026-04-01..2026-04-07",
+        "input_dir": "input",
+        "state_dir": "output/state/2026",
+        "output_dir": "output",
+    }
+
+
+def test_main_interactively_retries_on_invalid_entries(monkeypatch, capsys):
+    called = {}
+    answers = iter(
+        ["bad", "lottery", "2026/04/01", "2026-04-01", "2026-03-31", "2026-04-01", "2026-04-07"]
+    )
+
+    def fake_input(prompt):
+        return next(answers)
+
+    def fake_run_lottery(**kwargs):
+        called.update(kwargs)
+        return None
+
+    monkeypatch.setattr("builtins.input", fake_input)
+    monkeypatch.setattr("locker_manage_system.main.run_lottery", fake_run_lottery)
+
+    exit_code = main([])
+
+    captured = capsys.readouterr()
+    assert exit_code == 0
+    assert "validate または lottery" in captured.out
+    assert "YYYY-MM-DD" in captured.out
+    assert "終了日は開始日以降" in captured.out
+    assert called["term"] == "2026-04-01..2026-04-07"
