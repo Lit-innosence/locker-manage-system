@@ -79,6 +79,25 @@ def test_run_validate_writes_validation_and_review_outputs(tmp_path):
     assert (tmp_path / "output/term1/validation/valid_4F.csv").exists()
     assert (tmp_path / "output/term1/review/review_4F.csv").exists()
 
+    with (tmp_path / "output/term1/review/review_4F.csv").open(
+        "r", encoding="utf-8", newline=""
+    ) as csv_file:
+        rows = list(csv.DictReader(csv_file))
+
+    assert list(rows[0].keys()) == [
+        "申請者学籍番号",
+        "申請者氏名",
+        "申請者学生証URL",
+        "共同利用者学籍番号",
+        "共同利用者氏名",
+        "共同利用者学生証URL",
+        "requested_floor",
+        "usage_type",
+        "manual_status",
+    ]
+    assert rows[0]["申請者学生証URL"] == "accept"
+    assert rows[0]["共同利用者学生証URL"] == ""
+
 
 def test_run_validate_sorts_valid_rows_by_applicant_id(tmp_path):
     input_dir = tmp_path / "input"
@@ -302,3 +321,47 @@ def test_run_validate_marks_applicant_outside_term_as_e1(tmp_path):
         rows = list(csv.DictReader(csv_file))
 
     assert [row["結果"] for row in rows] == ["E1"]
+
+
+def test_run_validate_writes_partner_card_url_into_review_csv(tmp_path):
+    input_dir = tmp_path / "input"
+    state_dir = tmp_path / "state"
+    output_dir = tmp_path / "output"
+    input_dir.mkdir()
+    state_dir.mkdir()
+
+    input_dir.joinpath("applicant_data.csv").write_text(
+        "タイムスタンプ,メールアドレス,規約への同意,申請者の学籍番号,申請者の氏名,申請者の学生証写真,共同利用者の有無,共同利用者の学籍番号,共同利用者の氏名,階数希望選択（共同利用者なし）,階数希望選択（共同利用者あり）\n"
+        "2026-04-01 00:10:00,test@example.com,利用規約に同意する,1520001,山田 太郎,app-card-url,共同利用者あり,4123456,佐藤 花子,,2階\n",
+        encoding="utf-8",
+    )
+    input_dir.joinpath("partner_data.csv").write_text(
+        "タイムスタンプ,メールアドレス,規約への同意,共同利用者の学籍番号,共同利用者の氏名,共同利用者の学生証写真\n"
+        "2026-04-01 00:08:00,partner@example.com,利用規約に同意する,4123456,佐藤 花子,partner-card-url\n",
+        encoding="utf-8",
+    )
+    config_path = tmp_path / "config.yml"
+    config_path.write_text(
+        "year: 2026\n"
+        "floors:\n"
+        "  2F:\n"
+        "    capacity: 420\n"
+        "    occupancy: pair_only\n",
+        encoding="utf-8",
+    )
+
+    run_validate(
+        config_path=config_path,
+        term="term1",
+        input_dir=input_dir,
+        state_dir=state_dir,
+        output_dir=output_dir,
+    )
+
+    with (tmp_path / "output/term1/review/review_2F.csv").open(
+        "r", encoding="utf-8", newline=""
+    ) as csv_file:
+        rows = list(csv.DictReader(csv_file))
+
+    assert rows[0]["申請者学生証URL"] == "app-card-url"
+    assert rows[0]["共同利用者学生証URL"] == "partner-card-url"

@@ -28,8 +28,10 @@ VALIDATION_COLUMNS = [
 REVIEW_COLUMNS = [
     "申請者学籍番号",
     "申請者氏名",
+    "申請者学生証URL",
     "共同利用者学籍番号",
     "共同利用者氏名",
+    "共同利用者学生証URL",
     "requested_floor",
     "usage_type",
     "manual_status",
@@ -130,8 +132,10 @@ def _review_row(application: NormalizedApplication) -> dict[str, str]:
     return {
         "申請者学籍番号": application.applicant_id,
         "申請者氏名": application.applicant_name,
+        "申請者学生証URL": application.applicant_card_ref,
         "共同利用者学籍番号": application.partner_id if application.usage_type == "pair" else "",
         "共同利用者氏名": application.partner_name if application.usage_type == "pair" else "",
+        "共同利用者学生証URL": application.partner_card_ref if application.usage_type == "pair" else "",
         "requested_floor": application.requested_floor,
         "usage_type": application.usage_type,
         "manual_status": "",
