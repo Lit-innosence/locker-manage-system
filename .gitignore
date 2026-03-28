@@ -1,0 +1,8 @@
+.worktrees/
+__pycache__/
+*.py[cod]
+output/
+*.egg-info/
+
+build/
+dist/

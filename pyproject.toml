@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "locker-manage-system"
+version = "0.1.0"
+description = "Locker lottery management CLI"
+requires-python = ">=3.10"
+dependencies = ["PyYAML>=6.0,<7.0", "reportlab>=4.0,<5.0"]
+
+[dependency-groups]
+dev = [
+  "pyinstaller>=6.19,<7.0",
+  "pytest>=9.0,<10.0",
+]
+
+[project.scripts]
+locker-manage-system = "locker_manage_system.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
